@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小纸条博物馆</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+    </script>
+    <style>
+        /* ===== 全局样式（与原版一致） ===== */
+        :root {
+            --soil-light: #f5e9d2;
+            --soil-medium: #d8c3a5;
+            --soil-dark: #a89f8f;
+            --soil-deep: #7a6f5d;
+            --background: #fffaf0;
+            --text-primary: #5a5047;
+            --text-secondary: #8a7f70;
+            --accent: #8b7d6b;
+            --success: #a8dadc;
+            --danger: #e63946;
+            --border-color: #d8c3a5;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid var(--soil-medium);
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: normal;
+            letter-spacing: 2px;
+        }
+        .header p {
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 4px;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0;
+        }
+        .tab-btn {
+            padding: 10px 24px;
+            border: none;
+            background: none;
+            font-family: inherit;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-radius: 12px 12px 0 0;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        .tab-btn.active {
+            background: var(--soil-medium);
+            color: var(--text-primary);
+        }
+        .tab-btn:hover {
+            background: var(--soil-light);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .toolbar button {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 20px;
+            background: var(--soil-dark);
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            font-family: inherit;
+        }
+        .toolbar button:hover {
+            background: var(--soil-deep);
+        }
+        .toolbar button.active-mode {
+            background: var(--accent);
+        }
+        .toolbar .spacer {
+            flex: 1;
+        }
+        .toolbar .badge {
+            background: var(--soil-light);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .shelf-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 24px;
+            padding: 8px 0;
+        }
+        .shelf-book {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        .shelf-book:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        }
+        .shelf-book .cover {
+            aspect-ratio: 2/3;
+            background: linear-gradient(145deg, #d8c3a5, #b89f85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .shelf-book .cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .shelf-book .cover .no-cover {
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .shelf-book .cover .cover-title {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            backdrop-filter: blur(2px);
+        }
+        .shelf-book .info {
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: #f9f5ef;
+        }
+        .shelf-book .info .title {
+            font-weight: bold;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 110px;
+        }
+        .shelf-book .info .author {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80px;
+        }
+        .shelf-book .info .pages {
+            font-size: 0.7rem;
+            background: var(--soil-light);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        .shelf-book .book-actions {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .shelf-book:hover .book-actions {
+            opacity: 1;
+        }
+        .shelf-book .book-actions button {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: background 0.2s;
+            color: var(--text-primary);
+        }
+        .shelf-book .book-actions button:hover {
+            background: white;
+        }
+        .shelf-book .book-actions .del-book-btn:hover {
+            color: var(--danger);
+        }
+        .shelf-book .book-actions .download-book-btn {
+            color: var(--accent);
+        }
+        .shelf-book .book-actions .download-book-btn:hover {
+            color: var(--soil-deep);
+        }
+        .reader-modal .modal-content {
+            max-width: 900px;
+            max-height: 95vh;
+            background: #fcf8f0;
+        }
+        .reader-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 400px;
+            background: #fcf8f0;
+            border-radius: 8px;
+        }
+        .reader-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: #f5ede0;
+            border-radius: 8px 8px 0 0;
+            flex-shrink: 0;
+        }
+        .reader-header .book-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .reader-header .book-title .author-tag {
+            font-weight: normal;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+        .reader-header .page-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .reader-body {
+            flex: 1;
+            padding: 30px 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 300px;
+            background: #fcf8f0;
+        }
+        .reader-body .page-content {
+            width: 100%;
+            max-width: 700px;
+        }
+        .reader-body .page-content .page-text {
+            font-size: 1.05rem;
+            line-height: 1.9;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+        .reader-body .page-content .page-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .reader-body .page-content .page-images img {
+            width: 100%;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            object-fit: contain;
+            max-height: 300px;
+            background: white;
+            padding: 4px;
+        }
+        .reader-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            background: #f5ede0;
+            border-radius: 0 0 8px 8px;
+            flex-shrink: 0;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .reader-footer .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .reader-footer .nav-buttons button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .reader-footer .nav-buttons button:hover:not(:disabled) {
+            background: var(--soil-light);
+        }
+        .reader-footer .nav-buttons button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .reader-footer .page-jump {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .reader-footer .page-jump input {
+            width: 50px;
+            padding: 4px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .reader-footer .reader-edit-btn {
+            padding: 6px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .reader-footer .reader-edit-btn:hover {
+            background: var(--soil-light);
+        }
+        .cover-preview-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .cover-preview-area .cover-preview-img {
+            width: 120px;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            background: #e8ddd0;
+        }
+        .cover-preview-area .cover-preview-placeholder {
+            width: 120px;
+            aspect-ratio: 2/3;
+            border-radius: 8px;
+            background: #e8ddd0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #c4b5a0;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+        .book-page-list {
+            margin-top: 16px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+        }
+        .book-page-list .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .book-page-list .list-header h4 {
+            margin: 0;
+        }
+        .book-page-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--soil-light);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .book-page-item .page-num {
+            font-weight: bold;
+            color: var(--accent);
+            min-width: 50px;
+        }
+        .book-page-item .page-preview {
+            flex: 1;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        .book-page-item .page-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .book-page-item .page-actions button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .book-page-item .page-actions .del-page-btn:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        .note-wall {
+            column-count: 3;
+            column-gap: 16px;
+            padding: 4px 0;
+        }
+        .note-card {
+            break-inside: avoid;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            cursor: default;
+        }
+        .note-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 2;
+        }
+        .note-card img {
+            width: 100%;
+            display: block;
+            background: #f0ebe3;
+        }
+        .note-card .note-remark {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(255, 248, 240, 0.95);
+            backdrop-filter: blur(2px);
+            border-top: 1px solid var(--soil-light);
+            transition: opacity 0.3s;
+            opacity: 0;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+        }
+        .note-card:hover .note-remark {
+            opacity: 1;
+        }
+        .note-card .note-check {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+            z-index: 3;
+        }
+        .note-card .note-check.checked {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        .note-card .note-check:hover {
+            transform: scale(1.1);
+        }
+        .note-card .note-actions {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 4;
+        }
+        .note-card:hover .note-actions {
+            opacity: 1;
+        }
+        .note-card .note-actions button {
+            background: rgba(255, 255, 255, 0.85);
+            border: none;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: background 0.2s;
+            color: var(--text-primary);
+        }
+        .note-card .note-actions button:hover {
+            background: white;
+        }
+        .note-card .note-actions .del-note-btn:hover {
+            color: var(--danger);
+        }
+        .note-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .note-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--soil-light);
+            transition: background 0.2s;
+            position: relative;
+        }
+        .note-list-item:hover {
+            background: var(--soil-light);
+        }
+        .note-list-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            flex-shrink: 0;
+            background: #f0ebe3;
+        }
+        .note-list-item .note-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .note-list-item .note-info .note-remark-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .note-list-item .note-info .note-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .note-list-item .note-check-list {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            font-size: 12px;
+            color: transparent;
+        }
+        .note-list-item .note-check-list.checked {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        .note-list-item .note-actions-list {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .note-list-item .note-actions-list button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 10px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: var(--accent);
+            transition: background 0.2s;
+        }
+        .note-list-item .note-actions-list button:hover {
+            background: var(--soil-light);
+        }
+        .note-list-item .note-actions-list .del-note-btn:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        .period-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .period-tab {
+            padding: 4px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+        .period-tab.active {
+            background: var(--soil-dark);
+            color: white;
+            border-color: var(--soil-dark);
+        }
+        .period-tab:hover {
+            background: var(--soil-light);
+        }
+        .category-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 14px;
+            align-items: center;
+        }
+        .cat-btn {
+            padding: 3px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+        .cat-btn.active {
+            background: var(--soil-light);
+            border-color: var(--accent);
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+        .cat-btn:hover {
+            background: var(--soil-light);
+        }
+        .cat-btn.add-cat-btn {
+            background: none;
+            border: 1px dashed var(--soil-dark);
+            color: var(--accent);
+        }
+        .cat-btn.add-cat-btn:hover {
+            background: var(--soil-light);
+        }
+        .batch-bar {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 14px;
+            background: var(--soil-light);
+            border-radius: 30px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            border: 1px solid var(--border-color);
+        }
+        .batch-bar.show {
+            display: flex;
+        }
+        .batch-bar span {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .batch-bar select {
+            padding: 4px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            background: white;
+        }
+        .batch-bar button {
+            padding: 4px 14px;
+            border: none;
+            border-radius: 20px;
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+        .batch-bar button:hover {
+            background: var(--soil-deep);
+        }
+        .batch-bar button.danger {
+            background: var(--danger);
+        }
+        .batch-bar button.danger:hover {
+            background: #c0392b;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .empty-state .big-icon {
+            font-size: 3.5rem;
+            display: block;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 20px;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-weight: normal;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+            background: white;
+        }
+        .image-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .image-upload-area.drag-over {
+            background: var(--soil-light);
+            border-color: var(--accent);
+        }
+        .image-upload-area p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-preview-item {
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            aspect-ratio: 1;
+        }
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .remove-image-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--danger);
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-cancel {
+            background: #ccc;
+            color: white;
+        }
+        .btn-submit {
+            background: var(--success);
+            color: white;
+        }
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .category-manage-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            background: var(--soil-light);
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        .category-manage-item .cat-name {
+            font-weight: bold;
+        }
+        .category-manage-item .cat-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-left: 8px;
+        }
+        .category-manage-item .cat-actions button:hover {
+            color: var(--danger);
+        }
+        .share-container-wide {
+            background: var(--background);
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Georgia', serif;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-width: 90vw;
+            text-align: left;
+            margin: 0 auto;
+        }
+        .share-container-wide h2 {
+            text-align: center;
+            font-weight: normal;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+        .share-container-wide .share-wall {
+            column-count: 3;
+            column-gap: 16px;
+        }
+        .share-container-wide .share-wall .share-item {
+            break-inside: avoid;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .share-container-wide .share-wall .share-item img {
+            width: 100%;
+            display: block;
+        }
+        .share-container-wide .share-wall .share-item .share-remark {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--soil-light);
+        }
+        .share-container-wide .share-footer {
+            text-align: center;
+            margin-top: 16px;
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .note-wall,
+            .share-container-wide .share-wall {
+                column-count: 2;
+            }
+            .shelf-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            }
+            .reader-body {
+                padding: 16px 18px;
+            }
+        }
+        @media (max-width: 480px) {
+            .note-wall,
+            .share-container-wide .share-wall {
+                column-count: 1;
+            }
+            .shelf-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            body {
+                padding: 10px;
+            }
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .toolbar .spacer {
+                display: none;
+            }
+            .tabs {
+                flex-direction: column;
+                border-bottom: none;
+            }
+            .tab-btn {
+                border-radius: 8px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>小纸条博物馆</h1>
+        <p>书架 · 著作 · 记忆碎片</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="books">书架</button>
+        <button class="tab-btn" data-tab="notes">小纸条</button>
+    </div>
+
+    <!-- ===== 书架 Tab ===== -->
+    <div id="tab-books" class="tab-content active">
+        <div class="toolbar">
+            <button id="add-book-btn">添加书籍</button>
+            <button id="import-books-btn">导入书籍</button>
+            <span class="spacer"></span>
+            <span class="badge" id="book-count">0 本</span>
+        </div>
+        <div id="shelf-container" class="shelf-grid"></div>
+    </div>
+    <!--  未活猫（GitHub:DmlzsideSHY)xDeepSeek-->
+    <!-- ===== 小纸条 Tab ===== -->
+    <div id="tab-notes" class="tab-content">
+        <div class="toolbar">
+            <button id="add-note-btn">添加纸条</button>
+            <button id="note-mode-wall" class="active-mode">照片墙</button>
+            <button id="note-mode-list">铺排</button>
+            <button id="manage-category-btn">管理分类</button>
+            <span class="spacer"></span>
+            <button id="export-notes-btn">导出纸条</button>
+            <button id="import-notes-btn">导入纸条</button>
+            <span class="badge" id="note-count">0 张</span>
+        </div>
+        <div class="period-tabs" id="period-tabs"></div>
+        <div class="category-row" id="category-row"></div>
+        <div class="batch-bar" id="batch-bar">
+            <span id="batch-count">已选 0 张</span>
+            <select id="batch-category"><option value="">移动至分类...</option></select>
+            <button id="batch-move">移动</button>
+            <button id="batch-share" class="btn-submit">生成分享图</button>
+            <button id="batch-clear" class="danger">取消选择</button>
+        </div>
+        <div id="note-display-container"></div>
+    </div>
+
+    <!-- ===== 模态框：书籍表单 ===== -->
+    <div id="book-modal" class="modal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h2 id="book-modal-title">添加书籍</h2>
+                <button class="modal-close" onclick="closeModal('book-modal')">&times;</button>
+            </div>
+            <form id="book-form">
+                <div class="form-group">
+                    <label for="book-title">书名 *</label>
+                    <input type="text" id="book-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="book-author">作者</label>
+                    <input type="text" id="book-author">
+                </div>
+                <div class="form-group">
+                    <label>封面</label>
+                    <div class="cover-preview-area">
+                        <div id="book-cover-preview">
+                            <div class="cover-preview-placeholder">封面</div>
+                        </div>
+                        <div class="image-upload-area" id="book-cover-upload-area" style="width:100%;">
+                            <p>点击上传封面图片</p>
+                        </div>
+                        <input type="file" id="book-cover-input" accept="image/*" style="display:none;">
+                        <button type="button" class="btn btn-cancel" style="padding:4px 12px; font-size:0.8rem;" onclick="removeBookCover()">移除封面</button>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal('book-modal')">取消</button>
+                    <button type="button" class="btn btn-delete" id="book-delete-btn" style="display:none;" onclick="deleteBook()">删除书籍</button>
+                    <button type="submit" class="btn btn-submit">保存</button>
+                </div>
+            </form>
+            <div class="book-page-list" id="book-page-list-area">
+                <div class="list-header">
+                    <h4>页面列表</h4>
+                    <button class="btn btn-submit" style="padding:4px 12px; font-size:0.8rem;" onclick="openPageForm(currentEditingBookId, null)">添加页面</button>
+                </div>
+                <div id="book-page-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 模态框：页面表单 ===== -->
+    <div id="page-modal" class="modal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h2 id="page-modal-title">编辑页面</h2>
+                <button class="modal-close" onclick="closeModal('page-modal')">&times;</button>
+            </div>
+            <form id="page-form">
+                <div class="form-group">
+                    <label for="page-number">页码 *</label>
+                    <input type="number" id="page-number" min="1" step="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="page-content">内容 *</label>
+                    <textarea id="page-content" rows="6" placeholder="在这一页写下你的文字..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>配图（可选，支持多张）</label>
+                    <div class="image-upload-area" id="page-image-upload-area">
+                        <p>点击或拖拽添加图片</p>
+                    </div>
+                    <input type="file" id="page-image-input" accept="image/*" multiple style="display:none;">
+                    <div class="image-preview-grid" id="page-image-preview-grid"></div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal('page-modal')">取消</button>
+                    <button type="button" class="btn btn-delete" id="page-delete-btn" style="display:none;" onclick="deletePage()">删除页面</button>
+                    <button type="submit" class="btn btn-submit">保存页面</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== 模态框：阅读器 ===== -->
+    <div id="reader-modal" class="modal reader-modal">
+        <div class="modal-content" style="max-width:940px;">
+            <div class="reader-container">
+                <div class="reader-header">
+                    <span class="book-title" id="reader-book-title">书名</span>
+                    <span class="page-info" id="reader-page-info">1 / 1</span>
+                    <button class="modal-close" onclick="closeModal('reader-modal')">&times;</button>
+                </div>
+                <div class="reader-body" id="reader-body">
+                    <div class="page-content" id="reader-page-content">
+                        <div class="page-text" id="reader-page-text"></div>
+                        <div class="page-images" id="reader-page-images"></div>
+                    </div>
+                </div>
+                <div class="reader-footer">
+                    <div class="nav-buttons">
+                        <button id="reader-prev" onclick="readerPrev()">上一页</button>
+                        <button id="reader-next" onclick="readerNext()">下一页</button>
+                    </div>
+                    <div class="page-jump">
+                        <span>跳转</span>
+                        <input type="number" id="reader-jump-input" min="1" value="1">
+                        <button onclick="readerJump()">GO</button>
+                    </div>
+                    <button class="reader-edit-btn" onclick="readerEditBook()">管理页面</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 模态框：分类管理（小纸条） ===== -->
+    <div id="category-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>管理分类</h2>
+                <button class="modal-close" onclick="closeModal('category-modal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>时期管理</label>
+                <div id="period-list"></div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <input type="text" id="new-period-input" placeholder="新时期名称">
+                    <button class="btn btn-submit" onclick="addPeriod()">添加</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>分类管理（属于时期）</label>
+                <div id="category-list"></div>
+                <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                    <select id="new-category-period"><option value="">选择时期</option></select>
+                    <input type="text" id="new-category-input" placeholder="新分类名称">
+                    <button class="btn btn-submit" onclick="addCategory()">添加</button>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeModal('category-modal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 模态框：分享预览 ===== -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content" style="max-width:90vw; width:auto;">
+            <div class="modal-header">
+                <h2>分享图预览</h2>
+                <button class="modal-close" onclick="closeModal('share-modal')">&times;</button>
+            </div>
+            <div id="share-content" style="overflow:auto; text-align:center;"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeModal('share-modal')">取消</button>
+                <button class="btn btn-submit" id="confirm-share-btn">确认生成图片</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 模态框：添加/编辑纸条 ===== -->
+    <div id="note-modal" class="modal">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header">
+                <h2 id="note-modal-title">添加纸条</h2>
+                <button class="modal-close" onclick="closeModal('note-modal')">&times;</button>
+            </div>
+            <form id="note-form">
+                <div class="form-group">
+                    <label>图片 *</label>
+                    <div class="image-upload-area" id="note-upload-area">
+                        <p>点击或拖拽上传图片</p>
+                    </div>
+                    <input type="file" id="note-file-input" accept="image/*" style="display:none;">
+                    <div class="image-preview-grid" id="note-preview"></div>
+                </div>
+                <div class="form-group">
+                    <label for="note-remark">备注（悬停时显示）</label>
+                    <input type="text" id="note-remark" placeholder="写给自己的话...">
+                </div>
+                <div class="form-group">
+                    <label for="note-period">时期</label>
+                    <select id="note-period"><option value="">未分类时期</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="note-category">分类</label>
+                    <select id="note-category"><option value="">未分类</option></select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal('note-modal')">取消</button>
+                    <button type="button" class="btn btn-delete" id="note-delete-btn" style="display:none;" onclick="deleteNote()">删除</button>
+                    <button type="submit" class="btn btn-submit">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // 完整脚本：书架 + 小纸条博物馆
+        // 修复：添加时期/分类真实保存，使用 settings store 存储元数据
+        // ================================================================
+
+        const DB_NAME = 'MemoryWorkshopDB';
+        const DB_VERSION = 5; // 升级版本
+        const STORE_BOOKS = 'books';
+        const STORE_NOTES = 'notes';
+        const STORE_SETTINGS = 'settings';
+
+        let db;
+        let allBooks = [];
+        let allNotes = [];
+        let noteMeta = { periods: [], categories: {} }; // 时期和分类元数据
+
+        // ---------- 数据库 ----------
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onerror = (e) => reject(e.target.error);
+                req.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                req.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_BOOKS)) {
+                        db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(STORE_NOTES)) {
+                        db.createObjectStore(STORE_NOTES, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
+                        db.createObjectStore(STORE_SETTINGS, { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+
+        function getAll(store) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, 'readonly');
+                const req = tx.objectStore(store).getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function putAll(store, data) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, 'readwrite');
+                const os = tx.objectStore(store);
+                os.clear();
+                data.forEach(item => os.add(item));
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getOne(store, key) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, 'readonly');
+                const req = tx.objectStore(store).get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function putOne(store, item) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(store, 'readwrite');
+                const req = tx.objectStore(store).put(item);
+                req.onsuccess = () => resolve();
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // ---------- 数据加载 ----------
+        async function loadAllData() {
+            await initDB();
+            allBooks = await getAll(STORE_BOOKS);
+            allNotes = await getAll(STORE_NOTES);
+            // 确保结构完整
+            allBooks = allBooks.map(b => {
+                if (!b.pages) b.pages = [];
+                if (!b.author) b.author = '';
+                if (!b.coverImage) b.coverImage = '';
+                return b;
+            });
+            allNotes = allNotes.map(n => {
+                if (!n.period) n.period = '';
+                if (!n.category) n.category = '';
+                if (!n.remark) n.remark = '';
+                return n;
+            });
+
+            // 读取元数据
+            const meta = await getOne(STORE_SETTINGS, 'meta');
+            if (meta) {
+                noteMeta = meta;
+            } else {
+                // 从现有笔记中提取
+                const periods = new Set();
+                const categories = {};
+                allNotes.forEach(n => {
+                    if (n.period) periods.add(n.period);
+                    if (n.period && n.category) {
+                        if (!categories[n.period]) categories[n.period] = new Set();
+                        categories[n.period].add(n.category);
+                    }
+                });
+                noteMeta.periods = Array.from(periods);
+                noteMeta.categories = {};
+                Object.keys(categories).forEach(p => {
+                    noteMeta.categories[p] = Array.from(categories[p]);
+                });
+                // 保存
+                await putOne(STORE_SETTINGS, { id: 'meta', periods: noteMeta.periods, categories: noteMeta.categories });
+            }
+
+            // 初始化标记
+            const settings = await getOne(STORE_SETTINGS, 'init');
+            let initialized = settings ? settings.value : false;
+
+            if (!initialized) {
+                if (allBooks.length === 0) {
+                    allBooks = [{
+                        id: 'book1',
+                        title: '记忆地层',
+                        author: '你',
+                        coverImage: '',
+                        pages: [
+                            { id: 'p1', pageNumber: 1, content: '这是第一页的内容。', images: [] },
+                            { id: 'p2', pageNumber: 2, content: '第二页，写满了回忆。', images: [] }
+                        ]
+                    }];
+                }
+                if (allNotes.length === 0) {
+                    allNotes = [
+                        { id: 'demo1', image: 'https://picsum.photos/400/300?random=1', remark: '加油', period: '高一',
+                            category: '同学间' },
+                        { id: 'demo2', image: 'https://picsum.photos/400/300?random=2', remark: '书签', period: '高二',
+                            category: '学校主线' }
+                    ];
+                    // 同时更新元数据
+                    noteMeta.periods = ['高一', '高二'];
+                    noteMeta.categories = { '高一': ['同学间'], '高二': ['学校主线'] };
+                    await putOne(STORE_SETTINGS, { id: 'meta', periods: noteMeta.periods, categories: noteMeta
+                            .categories });
+                }
+                await saveBooks();
+                await saveNotes();
+                await putOne(STORE_SETTINGS, { id: 'init', value: true });
+            }
+
+            renderAll();
+        }
+
+        // 保存笔记和元数据
+        async function saveNotes() {
+            await putAll(STORE_NOTES, allNotes);
+            // 同时保存元数据
+            await putOne(STORE_SETTINGS, { id: 'meta', periods: noteMeta.periods, categories: noteMeta.categories });
+            updateNoteCount();
+        }
+
+        async function saveBooks() {
+            await putAll(STORE_BOOKS, allBooks);
+            updateBookCount();
+        }
+
+        function renderAll() {
+            renderShelf();
+            renderNoteMuseum();
+            updateBookCount();
+            updateNoteCount();
+        }
+
+        // ================================================================
+        // 书架模块（与原版相同）
+        // ================================================================
+        function renderShelf() {
+            const container = document.getElementById('shelf-container');
+            if (!allBooks.length) {
+                container.innerHTML =
+                    `<div class="empty-state"><span class="big-icon">· · ·</span>书架空空，添加第一本书吧</div>`;
+                return;
+            }
+            let html = '';
+            allBooks.forEach(book => {
+                const pages = book.pages || [];
+                const coverHtml = book.coverImage ?
+                    `<img src="${book.coverImage}" alt="${book.title}">` :
+                    `<div class="no-cover">封面</div>`;
+                const authorHtml = book.author ? `<span class="author">${book.author}</span>` : '';
+                html += `
+                    <div class="shelf-book" data-id="${book.id}">
+                        <div class="cover">
+                            ${coverHtml}
+                            <div class="cover-title">${book.title}</div>
+                            <div class="book-actions">
+                                <button class="download-book-btn" title="下载书籍" onclick="event.stopPropagation(); downloadBook('${book.id}')">下载</button>
+                                <button class="edit-book-btn" title="管理页面" onclick="event.stopPropagation(); openBookForm('${book.id}')">管理</button>
+                                <button class="del-book-btn" title="删除书籍" onclick="event.stopPropagation(); confirmDeleteBook('${book.id}')">删除</button>
+                            </div>
+                        </div>
+                        <div class="info">
+                            <span class="title">${book.title}</span>
+                            ${authorHtml}
+                            <span class="pages">${pages.length} 页</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            container.querySelectorAll('.shelf-book').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    if (e.target.closest('.book-actions')) return;
+                    const id = this.dataset.id;
+                    openReader(id);
+                });
+            });
+        }
+
+        function updateBookCount() {
+            document.getElementById('book-count').textContent = allBooks.length + ' 本';
+        }
+
+        // ---------- 书籍下载 ----------
+        function downloadBook(bookId) {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+            const pages = (book.pages || []).sort((a, b) => (a.pageNumber || 0) - (b.pageNumber || 0));
+            if (!pages.length) {
+                alert('这本书还没有任何页面，无法导出。');
+                return;
+            }
+            const includeImages = confirm('是否将页面中的图片一起导出？（点击"确定"包含图片，"取消"仅导出文字）');
+            let md = `# ${book.title}\n\n`;
+            if (book.author) md += `**作者**：${book.author}\n\n`;
+            md += `**导出时间**：${new Date().toLocaleString()}\n\n---\n\n`;
+            pages.forEach((page, idx) => {
+                md += `## 第 ${page.pageNumber} 页\n\n`;
+                md += page.content || '（本页无文字内容）';
+                md += '\n\n';
+                if (includeImages && page.images && page.images.length) {
+                    page.images.forEach((img, i) => {
+                        md += `![图片${i+1}](${img})\n\n`;
+                    });
+                }
+                md += '---\n\n';
+            });
+            const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${book.title}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ---------- 书籍导入 ----------
+        function importBooks() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (Array.isArray(data) && data.every(b => b.id && b.title)) {
+                            if (confirm(`将导入 ${data.length} 本书籍，覆盖当前数据？`)) {
+                                allBooks = data;
+                                saveBooks().then(() => {
+                                    renderShelf();
+                                    alert('导入成功！');
+                                });
+                            }
+                        } else {
+                            alert('文件格式无效，请确保是书籍数组。');
+                        }
+                    } catch (err) { alert('文件解析失败'); }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // ---------- 书籍表单 ----------
+        let currentEditingBookId = null;
+        let currentEditingPageId = null;
+
+        function openBookForm(bookId) {
+            const modal = document.getElementById('book-modal');
+            const form = document.getElementById('book-form');
+            const title = document.getElementById('book-modal-title');
+            const delBtn = document.getElementById('book-delete-btn');
+            const coverPreview = document.getElementById('book-cover-preview');
+            const nameInput = document.getElementById('book-title');
+            const authorInput = document.getElementById('book-author');
+
+            form.reset();
+            delBtn.style.display = 'none';
+            currentEditingBookId = null;
+            coverPreview.innerHTML = `<div class="cover-preview-placeholder">封面</div>`;
+            document.getElementById('book-cover-input').value = '';
+
+            if (bookId) {
+                const book = allBooks.find(b => b.id === bookId);
+                if (book) {
+                    currentEditingBookId = bookId;
+                    title.textContent = '编辑书籍';
+                    nameInput.value = book.title;
+                    authorInput.value = book.author || '';
+                    if (book.coverImage) {
+                        coverPreview.innerHTML =
+                            `<img src="${book.coverImage}" class="cover-preview-img" alt="封面">`;
+                    }
+                    delBtn.style.display = 'inline-block';
+                }
+            } else {
+                title.textContent = '添加书籍';
+                authorInput.value = '';
+            }
+
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                saveBookForm();
+            };
+            renderBookPageList();
+            modal.classList.add('active');
+        }
+
+        function saveBookForm() {
+            const name = document.getElementById('book-title').value.trim();
+            const author = document.getElementById('book-author').value.trim();
+            if (!name) { alert('请输入书名'); return; }
+            const coverImg = document.querySelector('#book-cover-preview img')?.src || '';
+
+            if (currentEditingBookId) {
+                const book = allBooks.find(b => b.id === currentEditingBookId);
+                if (book) {
+                    book.title = name;
+                    book.author = author;
+                    if (coverImg) book.coverImage = coverImg;
+                    else if (!document.querySelector('#book-cover-preview img')) book.coverImage = '';
+                }
+            } else {
+                const newBook = {
+                    id: 'book_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    title: name,
+                    author: author,
+                    coverImage: coverImg || '',
+                    pages: []
+                };
+                allBooks.push(newBook);
+            }
+            saveBooks().then(() => {
+                closeModal('book-modal');
+                renderShelf();
+            });
+        }
+
+        function removeBookCover() {
+            const preview = document.getElementById('book-cover-preview');
+            preview.innerHTML = `<div class="cover-preview-placeholder">封面</div>`;
+            document.getElementById('book-cover-input').value = '';
+        }
+
+        function confirmDeleteBook(bookId) {
+            if (!confirm('确定删除这本书吗？所有页面将丢失！')) return;
+            allBooks = allBooks.filter(b => b.id !== bookId);
+            saveBooks().then(() => renderShelf());
+        }
+
+        function deleteBook() {
+            if (!currentEditingBookId) return;
+            if (!confirm('确定删除这本书吗？')) return;
+            allBooks = allBooks.filter(b => b.id !== currentEditingBookId);
+            saveBooks().then(() => {
+                closeModal('book-modal');
+                renderShelf();
+            });
+        }
+
+        // ---------- 页面管理 ----------
+        function renderBookPageList() {
+            const container = document.getElementById('book-page-list');
+            const book = allBooks.find(b => b.id === currentEditingBookId);
+            if (!book || !book.pages || !book.pages.length) {
+                container.innerHTML = '<div style="color:var(--text-secondary);padding:8px 0;">暂无页面</div>';
+                return;
+            }
+            const sorted = [...book.pages].sort((a, b) => (a.pageNumber || 0) - (b.pageNumber || 0));
+            container.innerHTML = '';
+            sorted.forEach(page => {
+                const div = document.createElement('div');
+                div.className = 'book-page-item';
+                const preview = page.content ? page.content.substring(0, 30) + (page.content.length > 30 ? '…' : '') :
+                    '（空内容）';
+                div.innerHTML = `
+                    <span class="page-num">P${page.pageNumber}</span>
+                    <span class="page-preview">${preview}</span>
+                    <span style="font-size:0.7rem;color:var(--text-secondary);">${page.images?.length||0} 张图</span>
+                    <div class="page-actions">
+                        <button onclick="openPageForm('${currentEditingBookId}', '${page.id}')">编辑</button>
+                        <button class="del-page-btn" onclick="confirmDeletePage('${currentEditingBookId}', '${page.id}')">删除</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function confirmDeletePage(bookId, pageId) {
+            if (!confirm('确定删除这一页吗？')) return;
+            const book = allBooks.find(b => b.id === bookId);
+            if (book) {
+                book.pages = book.pages.filter(p => p.id !== pageId);
+                saveBooks().then(() => {
+                    renderShelf();
+                    renderBookPageList();
+                });
+            }
+        }
+
+        function openPageForm(bookId, pageId) {
+            const modal = document.getElementById('page-modal');
+            const form = document.getElementById('page-form');
+            const title = document.getElementById('page-modal-title');
+            const delBtn = document.getElementById('page-delete-btn');
+            const numInput = document.getElementById('page-number');
+            const contentInput = document.getElementById('page-content');
+            const grid = document.getElementById('page-image-preview-grid');
+
+            form.reset();
+            grid.innerHTML = '';
+            delBtn.style.display = 'none';
+            currentEditingBookId = bookId;
+            currentEditingPageId = null;
+
+            if (pageId) {
+                const book = allBooks.find(b => b.id === bookId);
+                if (book) {
+                    const page = book.pages.find(p => p.id === pageId);
+                    if (page) {
+                        currentEditingPageId = pageId;
+                        title.textContent = '编辑页面';
+                        numInput.value = page.pageNumber || 1;
+                        contentInput.value = page.content || '';
+                        if (page.images) page.images.forEach(img => addPageImagePreview(img));
+                        delBtn.style.display = 'inline-block';
+                    }
+                }
+            } else {
+                title.textContent = '添加页面';
+                const book = allBooks.find(b => b.id === bookId);
+                if (book && book.pages.length) {
+                    const maxPage = Math.max(...book.pages.map(p => p.pageNumber || 0));
+                    numInput.value = maxPage + 1;
+                } else {
+                    numInput.value = 1;
+                }
+            }
+
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                savePageForm();
+            };
+            modal.classList.add('active');
+        }
+
+        function savePageForm() {
+            const bookId = currentEditingBookId;
+            if (!bookId) { alert('书籍ID丢失'); return; }
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) { alert('书籍不存在'); return; }
+
+            const pageNum = parseInt(document.getElementById('page-number').value);
+            if (!pageNum || pageNum < 1) { alert('请输入有效的页码'); return; }
+            const content = document.getElementById('page-content').value.trim();
+            if (!content) { alert('请输入页面内容'); return; }
+            const images = [];
+            document.querySelectorAll('#page-image-preview-grid img').forEach(img => {
+                if (img.src) images.push(img.src);
+            });
+
+            if (currentEditingPageId) {
+                const page = book.pages.find(p => p.id === currentEditingPageId);
+                if (page) {
+                    page.pageNumber = pageNum;
+                    page.content = content;
+                    page.images = images;
+                }
+            } else {
+                const newPage = {
+                    id: 'page_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    pageNumber: pageNum,
+                    content: content,
+                    images: images
+                };
+                book.pages.push(newPage);
+                book.pages.sort((a, b) => (a.pageNumber || 0) - (b.pageNumber || 0));
+            }
+            saveBooks().then(() => {
+                closeModal('page-modal');
+                renderShelf();
+                renderBookPageList();
+            });
+        }
+
+        function deletePage() {
+            if (!currentEditingBookId || !currentEditingPageId) return;
+            if (!confirm('确定删除这一页吗？')) return;
+            const book = allBooks.find(b => b.id === currentEditingBookId);
+            if (book) {
+                book.pages = book.pages.filter(p => p.id !== currentEditingPageId);
+                saveBooks().then(() => {
+                    renderShelf();
+                    renderBookPageList();
+                    closeModal('page-modal');
+                });
+            }
+        }
+
+        function addPageImagePreview(b64) {
+            const grid = document.getElementById('page-image-preview-grid');
+            const item = document.createElement('div');
+            item.className = 'image-preview-item';
+            item.innerHTML =
+                `<img src="${b64}" alt="预览图"><button type="button" class="remove-image-btn" onclick="this.parentElement.remove()">×</button>`;
+            grid.appendChild(item);
+        }
+
+        // 页面图片上传事件（保留原代码）
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageUpload = document.getElementById('page-image-upload-area');
+            const pageInput = document.getElementById('page-image-input');
+            if (pageUpload && pageInput) {
+                pageUpload.addEventListener('click', () => pageInput.click());
+                pageUpload.addEventListener('dragover', (e) => { e.preventDefault();
+                    pageUpload.classList.add('drag-over'); });
+                pageUpload.addEventListener('dragleave', () => { pageUpload.classList.remove('drag-over'); });
+                pageUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    pageUpload.classList.remove('drag-over');
+                    const files = e.dataTransfer.files;
+                    if (files.length) handlePageImageFiles(files);
+                });
+                pageInput.addEventListener('change', function(e) {
+                    if (e.target.files.length) handlePageImageFiles(e.target.files);
+                    e.target.value = '';
+                });
+            }
+            const coverUpload = document.getElementById('book-cover-upload-area');
+            const coverInput = document.getElementById('book-cover-input');
+            if (coverUpload && coverInput) {
+                coverUpload.addEventListener('click', () => coverInput.click());
+                coverUpload.addEventListener('dragover', (e) => { e.preventDefault();
+                    coverUpload.classList.add('drag-over'); });
+                coverUpload.addEventListener('dragleave', () => { coverUpload.classList.remove('drag-over'); });
+                coverUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    coverUpload.classList.remove('drag-over');
+                    const files = e.dataTransfer.files;
+                    if (files.length) handleCoverFile(files[0]);
+                });
+                coverInput.addEventListener('change', function(e) {
+                    if (e.target.files.length) handleCoverFile(e.target.files[0]);
+                    e.target.value = '';
+                });
+            }
+        });
+
+        function handlePageImageFiles(files) {
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) { alert(`文件 "${file.name}" 格式不支持`); continue; }
+                const reader = new FileReader();
+                reader.onload = (ev) => addPageImagePreview(ev.target.result);
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleCoverFile(file) {
+            if (!file || !file.type.startsWith('image/')) { alert('请上传图片格式的封面'); return; }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const preview = document.getElementById('book-cover-preview');
+                preview.innerHTML = `<img src="${ev.target.result}" class="cover-preview-img" alt="封面">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ---------- 阅读器 ----------
+        let currentReadingBookId = null;
+        let currentReadingPages = [];
+        let currentReadingIndex = 0;
+
+        function openReader(bookId) {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+            const pages = (book.pages || []).sort((a, b) => (a.pageNumber || 0) - (b.pageNumber || 0));
+            if (!pages.length) { alert('这本书还没有任何页面，先去添加吧！'); return; }
+            currentReadingBookId = bookId;
+            currentReadingPages = pages;
+            currentReadingIndex = 0;
+
+            let titleHtml = book.title;
+            if (book.author) titleHtml += ` <span class="author-tag">— ${book.author}</span>`;
+            document.getElementById('reader-book-title').innerHTML = titleHtml;
+            document.getElementById('reader-modal').classList.add('active');
+            renderReaderPage();
+        }
+
+        function renderReaderPage() {
+            const pages = currentReadingPages;
+            if (!pages.length) return;
+            const idx = Math.min(Math.max(currentReadingIndex, 0), pages.length - 1);
+            const page = pages[idx];
+            currentReadingIndex = idx;
+
+            document.getElementById('reader-page-info').textContent = `${idx+1} / ${pages.length}`;
+            document.getElementById('reader-page-text').textContent = page.content || '（本页无文字内容）';
+            const imgContainer = document.getElementById('reader-page-images');
+            imgContainer.innerHTML = '';
+            if (page.images && page.images.length) {
+                page.images.forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = '配图';
+                    imgContainer.appendChild(img);
+                });
+            }
+            document.getElementById('reader-prev').disabled = idx === 0;
+            document.getElementById('reader-next').disabled = idx === pages.length - 1;
+            document.getElementById('reader-jump-input').value = idx + 1;
+            document.getElementById('reader-jump-input').max = pages.length;
+        }
+
+        function readerPrev() {
+            if (currentReadingIndex > 0) { currentReadingIndex--;
+                renderReaderPage(); }
+        }
+
+        function readerNext() {
+            if (currentReadingIndex < currentReadingPages.length - 1) { currentReadingIndex++;
+                renderReaderPage(); }
+        }
+
+        function readerJump() {
+            const input = document.getElementById('reader-jump-input');
+            let val = parseInt(input.value);
+            if (isNaN(val) || val < 1) val = 1;
+            if (val > currentReadingPages.length) val = currentReadingPages.length;
+            currentReadingIndex = val - 1;
+            renderReaderPage();
+        }
+
+        function readerEditBook() {
+            if (currentReadingBookId) {
+                closeModal('reader-modal');
+                openBookForm(currentReadingBookId);
+            }
+        }
+
+        // ================================================================
+        // 小纸条博物馆模块（使用 noteMeta 管理时期和分类）
+        // ================================================================
+        let noteState = {
+            selectedPeriod: null,
+            selectedCategory: null,
+            checkedIds: new Set(),
+            displayMode: 'wall',
+            editingId: null
+        };
+
+        function renderNoteMuseum() {
+            const container = document.getElementById('note-display-container');
+            if (!container) return;
+            // 时期标签
+            const periods = noteMeta.periods || [];
+            const periodContainer = document.getElementById('period-tabs');
+            if (periodContainer) {
+                let html =
+                    `<span class="period-tab ${!noteState.selectedPeriod ? 'active' : ''}" data-period="">全部</span>`;
+                periods.forEach(p => {
+                    const active = p === noteState.selectedPeriod ? 'active' : '';
+                    html += `<span class="period-tab ${active}" data-period="${p}">${p}</span>`;
+                });
+                periodContainer.innerHTML = html;
+                periodContainer.querySelectorAll('.period-tab').forEach(el => {
+                    el.addEventListener('click', function() {
+                        noteState.selectedPeriod = this.dataset.period || null;
+                        noteState.selectedCategory = null;
+                        renderNoteMuseum();
+                    });
+                });
+            }
+            // 分类行
+            const categoryContainer = document.getElementById('category-row');
+            if (categoryContainer) {
+                let cats = [];
+                if (noteState.selectedPeriod && noteMeta.categories[noteState.selectedPeriod]) {
+                    cats = noteMeta.categories[noteState.selectedPeriod];
+                } else {
+                    // 汇总所有分类
+                    const catSet = new Set();
+                    Object.values(noteMeta.categories).forEach(arr => arr.forEach(c => catSet.add(c)));
+                    cats = Array.from(catSet);
+                }
+                let html =
+                    `<button class="cat-btn ${!noteState.selectedCategory ? 'active' : ''}" data-cat="">全部</button>`;
+                html +=
+                    `<button class="cat-btn ${noteState.selectedCategory === '__uncat__' ? 'active' : ''}" data-cat="__uncat__">未分类</button>`;
+                cats.forEach(c => {
+                    const active = c === noteState.selectedCategory ? 'active' : '';
+                    html += `<button class="cat-btn ${active}" data-cat="${c}">${c}</button>`;
+                });
+                html += `<button class="cat-btn add-cat-btn" id="quick-add-cat">+ 添加分类</button>`;
+                categoryContainer.innerHTML = html;
+                categoryContainer.querySelectorAll('.cat-btn[data-cat]').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const cat = this.dataset.cat || null;
+                        noteState.selectedCategory = cat === '__uncat__' ? '__uncat__' : cat;
+                        renderNoteMuseum();
+                    });
+                });
+                const quickAdd = categoryContainer.querySelector('#quick-add-cat');
+                if (quickAdd) {
+                    quickAdd.addEventListener('click', function() {
+                        const period = noteState.selectedPeriod || (noteMeta.periods.length ? noteMeta.periods[0] :
+                            '');
+                        if (!period) { alert('请先创建时期（在“管理分类”中）'); return; }
+                        const name = prompt('输入新分类名称：');
+                        if (name && name.trim()) {
+                            // 添加分类到元数据
+                            if (!noteMeta.categories[period]) noteMeta.categories[period] = [];
+                            if (!noteMeta.categories[period].includes(name.trim())) {
+                                noteMeta.categories[period].push(name.trim());
+                                saveNotes(); // 保存元数据
+                                renderNoteMuseum();
+                            } else {
+                                alert('分类已存在');
+                            }
+                        }
+                    });
+                }
+            }
+            // 过滤
+            let notes = allNotes;
+            if (noteState.selectedPeriod) {
+                notes = notes.filter(n => n.period === noteState.selectedPeriod);
+            }
+            if (noteState.selectedCategory === '__uncat__') {
+                notes = notes.filter(n => !n.category || n.category === '');
+            } else if (noteState.selectedCategory) {
+                notes = notes.filter(n => n.category === noteState.selectedCategory);
+            }
+            // 渲染
+            if (!notes.length) {
+                container.innerHTML =
+                    `<div class="empty-state"><span class="big-icon">· · ·</span>还没有纸条，添加一张吧</div>`;
+                return;
+            }
+            if (noteState.displayMode === 'wall') {
+                let html = '<div class="note-wall">';
+                const shuffled = [...notes];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                shuffled.forEach(n => {
+                    const checked = noteState.checkedIds.has(n.id) ? 'checked' : '';
+                    const rot = (Math.random() - 0.5) * 3;
+                    html += `
+                        <div class="note-card" style="transform: rotate(${rot}deg);" data-id="${n.id}">
+                            <img src="${n.image}" alt="纸条" loading="lazy">
+                            <div class="note-remark">${n.remark || ''}</div>
+                            <div class="note-check ${checked}" data-id="${n.id}">✓</div>
+                            <div class="note-actions">
+                                <button class="edit-note-btn" onclick="event.stopPropagation(); openNoteForm('${n.id}')">编辑</button>
+                                <button class="del-note-btn" onclick="event.stopPropagation(); confirmDeleteNote('${n.id}')">删除</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+                container.querySelectorAll('.note-check').forEach(el => {
+                    el.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const id = this.dataset.id;
+                        if (noteState.checkedIds.has(id)) noteState.checkedIds.delete(id);
+                        else noteState.checkedIds.add(id);
+                        renderNoteMuseum();
+                    });
+                });
+                container.querySelectorAll('.note-card').forEach(card => {
+                    card.addEventListener('click', function(e) {
+                        if (e.target.closest('.note-check') || e.target.closest('.note-actions'))
+                            return;
+                        const id = this.dataset.id;
+                        const note = allNotes.find(n => n.id === id);
+                        if (note) {
+                            const w = window.open('', '_blank');
+                            if (w) {
+                                w.document.write(
+                                    `<img src="${note.image}" style="max-width:100%;max-height:100vh;display:block;margin:auto;background:#f0ebe3;">`
+                                    );
+                                w.document.title = '纸条预览';
+                            }
+                        }
+                    });
+                });
+            } else {
+                let html = '<div class="note-list">';
+                notes.forEach(n => {
+                    const checked = noteState.checkedIds.has(n.id) ? 'checked' : '';
+                    html += `
+                        <div class="note-list-item" data-id="${n.id}">
+                            <img src="${n.image}" alt="纸条">
+                            <div class="note-info">
+                                <div class="note-remark-text">${n.remark || ''}</div>
+                                <div class="note-meta">${n.period || '无时期'} · ${n.category || '未分类'}</div>
+                            </div>
+                            <div class="note-check-list ${checked}" data-id="${n.id}">✓</div>
+                            <div class="note-actions-list">
+                                <button class="edit-note-btn" onclick="openNoteForm('${n.id}')">编辑</button>
+                                <button class="del-note-btn" onclick="confirmDeleteNote('${n.id}')">删除</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+                container.querySelectorAll('.note-check-list').forEach(el => {
+                    el.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const id = this.dataset.id;
+                        if (noteState.checkedIds.has(id)) noteState.checkedIds.delete(id);
+                        else noteState.checkedIds.add(id);
+                        renderNoteMuseum();
+                    });
+                });
+            }
+            // 批量操作条
+            const bar = document.getElementById('batch-bar');
+            const count = document.getElementById('batch-count');
+            const total = noteState.checkedIds.size;
+            count.textContent = `已选 ${total} 张`;
+            if (total > 0) bar.classList.add('show');
+            else bar.classList.remove('show');
+            const sel = document.getElementById('batch-category');
+            let cats = [];
+            if (noteState.selectedPeriod && noteMeta.categories[noteState.selectedPeriod]) {
+                cats = noteMeta.categories[noteState.selectedPeriod];
+            } else {
+                const catSet = new Set();
+                Object.values(noteMeta.categories).forEach(arr => arr.forEach(c => catSet.add(c)));
+                cats = Array.from(catSet);
+            }
+            sel.innerHTML = '<option value="">移动至分类...</option>';
+            cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                sel.appendChild(opt);
+            });
+        }
+
+        function updateNoteCount() {
+            document.getElementById('note-count').textContent = allNotes.length + ' 张';
+        }
+
+        // ---------- 删除纸条 ----------
+        function confirmDeleteNote(noteId) {
+            if (!confirm('确定删除这张纸条吗？')) return;
+            allNotes = allNotes.filter(n => n.id !== noteId);
+            if (noteState.checkedIds.has(noteId)) noteState.checkedIds.delete(noteId);
+            saveNotes().then(() => {
+                renderNoteMuseum();
+            });
+        }
+
+        // ---------- 纸条添加/编辑 ----------
+        function openNoteForm(noteId) {
+            let form = document.getElementById('note-form');
+            if (!form) {
+                const modal = document.getElementById('note-modal');
+                if (modal) form = modal.querySelector('form');
+                if (!form) {
+                    alert('页面错误：找不到纸条表单，请刷新页面后重试。');
+                    return;
+                }
+            }
+
+            const title = document.getElementById('note-modal-title');
+            const delBtn = document.getElementById('note-delete-btn');
+            const preview = document.getElementById('note-preview');
+            const remark = document.getElementById('note-remark');
+            const periodSel = document.getElementById('note-period');
+            const catSel = document.getElementById('note-category');
+
+            form.reset();
+            preview.innerHTML = '';
+            delBtn.style.display = 'none';
+            noteState.editingId = null;
+
+            // 填充时期选项（来自 noteMeta）
+            periodSel.innerHTML = '<option value="">未分类时期</option>';
+            noteMeta.periods.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                periodSel.appendChild(opt);
+            });
+
+            function updateCats(period) {
+                catSel.innerHTML = '<option value="">未分类</option>';
+                const cats = noteMeta.categories[period] || [];
+                cats.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    catSel.appendChild(opt);
+                });
+            }
+            periodSel.addEventListener('change', function() { updateCats(this.value); });
+
+            if (noteId) {
+                const note = allNotes.find(n => n.id === noteId);
+                if (!note) return;
+                noteState.editingId = noteId;
+                title.textContent = '编辑纸条';
+                delBtn.style.display = 'inline-block';
+                remark.value = note.remark || '';
+                if (note.image) {
+                    const item = document.createElement('div');
+                    item.className = 'image-preview-item';
+                    item.innerHTML =
+                        `<img src="${note.image}"><button type="button" class="remove-image-btn" onclick="this.parentElement.remove()">×</button>`;
+                    preview.appendChild(item);
+                }
+                if (note.period) {
+                    periodSel.value = note.period;
+                    updateCats(note.period);
+                    if (note.category) catSel.value = note.category;
+                }
+            } else {
+                title.textContent = '添加纸条';
+                if (noteState.selectedPeriod) {
+                    periodSel.value = noteState.selectedPeriod;
+                    updateCats(noteState.selectedPeriod);
+                    if (noteState.selectedCategory && noteState.selectedCategory !== '__uncat__') {
+                        catSel.value = noteState.selectedCategory;
+                    }
+                }
+            }
+
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                saveNoteForm();
+            };
+            document.getElementById('note-modal').classList.add('active');
+        }
+
+        function saveNoteForm() {
+            const preview = document.getElementById('note-preview');
+            const imgEl = preview.querySelector('img');
+            const image = imgEl ? imgEl.src : '';
+            const remark = document.getElementById('note-remark').value.trim();
+            const period = document.getElementById('note-period').value;
+            const category = document.getElementById('note-category').value;
+            if (!image) { alert('请上传图片'); return; }
+
+            if (noteState.editingId) {
+                const note = allNotes.find(n => n.id === noteState.editingId);
+                if (note) {
+                    note.image = image;
+                    note.remark = remark;
+                    note.period = period;
+                    note.category = category;
+                }
+            } else {
+                const newNote = {
+                    id: 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                    image,
+                    remark,
+                    period,
+                    category
+                };
+                allNotes.push(newNote);
+            }
+            // 保存后，可能新增了时期/分类，需要更新 noteMeta
+            // 从所有笔记中重新提取，确保元数据最新
+            refreshMetaFromNotes();
+            saveNotes().then(() => {
+                closeModal('note-modal');
+                renderNoteMuseum();
+            });
+        }
+
+        // 从所有笔记中提取时期和分类，更新 noteMeta（用于新增纸条后）
+        function refreshMetaFromNotes() {
+            const periods = new Set();
+            const categories = {};
+            allNotes.forEach(n => {
+                if (n.period) periods.add(n.period);
+                if (n.period && n.category) {
+                    if (!categories[n.period]) categories[n.period] = new Set();
+                    categories[n.period].add(n.category);
+                }
+            });
+            noteMeta.periods = Array.from(periods);
+            noteMeta.categories = {};
+            Object.keys(categories).forEach(p => {
+                noteMeta.categories[p] = Array.from(categories[p]);
+            });
+        }
+
+        function deleteNote() {
+            if (!noteState.editingId) return;
+            if (!confirm('确定删除这张纸条吗？')) return;
+            const id = noteState.editingId;
+            allNotes = allNotes.filter(n => n.id !== id);
+            if (noteState.checkedIds.has(id)) noteState.checkedIds.delete(id);
+            refreshMetaFromNotes();
+            saveNotes().then(() => {
+                closeModal('note-modal');
+                renderNoteMuseum();
+            });
+        }
+
+        // ---------- 分类管理（真实保存） ----------
+        function openCategoryManager() {
+            const modal = document.getElementById('category-modal');
+            if (!modal) return;
+            // 时期列表
+            const periodList = document.getElementById('period-list');
+            periodList.innerHTML = '';
+            noteMeta.periods.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'category-manage-item';
+                div.innerHTML = `
+                    <span class="cat-name">${p}</span>
+                    <div class="cat-actions">
+                        <button onclick="renamePeriod('${p}')">✎</button>
+                        <button onclick="deletePeriod('${p}')">✕</button>
+                    </div>
+                `;
+                periodList.appendChild(div);
+            });
+            // 分类列表（按时期分组）
+            const catList = document.getElementById('category-list');
+            catList.innerHTML = '';
+            noteMeta.periods.forEach(p => {
+                const cats = noteMeta.categories[p] || [];
+                if (cats.length) {
+                    const header = document.createElement('div');
+                    header.style.fontWeight = 'bold';
+                    header.style.marginTop = '8px';
+                    header.textContent = p;
+                    catList.appendChild(header);
+                    cats.forEach(c => {
+                        const div = document.createElement('div');
+                        div.className = 'category-manage-item';
+                        div.innerHTML = `
+                            <span class="cat-name">${c}</span>
+                            <div class="cat-actions">
+                                <button onclick="renameCategory('${p}','${c}')">✎</button>
+                                <button onclick="deleteCategory('${p}','${c}')">✕</button>
+                            </div>
+                        `;
+                        catList.appendChild(div);
+                    });
+                }
+            });
+            // 填充新分类的时期下拉
+            const periodSelect = document.getElementById('new-category-period');
+            periodSelect.innerHTML = '<option value="">选择时期</option>';
+            noteMeta.periods.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                periodSelect.appendChild(opt);
+            });
+            modal.classList.add('active');
+        }
+
+        // 添加时期
+        window.addPeriod = function() {
+            const input = document.getElementById('new-period-input');
+            const name = input.value.trim();
+            if (!name) { alert('请输入时期名称'); return; }
+            if (noteMeta.periods.includes(name)) { alert('时期已存在'); return; }
+            noteMeta.periods.push(name);
+            noteMeta.categories[name] = [];
+            saveNotes().then(() => {
+                input.value = '';
+                openCategoryManager();
+                renderNoteMuseum();
+            });
+        };
+
+        // 重命名时期
+        window.renamePeriod = function(oldName) {
+            const newName = prompt('重命名时期：', oldName);
+            if (!newName || newName === oldName) return;
+            if (noteMeta.periods.includes(newName)) { alert('名称已存在'); return; }
+            const idx = noteMeta.periods.indexOf(oldName);
+            if (idx === -1) return;
+            noteMeta.periods[idx] = newName;
+            noteMeta.categories[newName] = noteMeta.categories[oldName] || [];
+            delete noteMeta.categories[oldName];
+            // 更新所有笔记中的时期
+            allNotes.forEach(n => { if (n.period === oldName) n.period = newName; });
+            saveNotes().then(() => {
+                openCategoryManager();
+                renderNoteMuseum();
+            });
+        };
+
+        // 删除时期
+        window.deletePeriod = function(name) {
+            if (!confirm(`确定删除时期“${name}”吗？相关笔记的时期将被置空。`)) return;
+            noteMeta.periods = noteMeta.periods.filter(p => p !== name);
+            delete noteMeta.categories[name];
+            allNotes.forEach(n => { if (n.period === name) n.period = ''; });
+            saveNotes().then(() => {
+                openCategoryManager();
+                renderNoteMuseum();
+            });
+        };
+
+        // 添加分类
+        window.addCategory = function() {
+            const period = document.getElementById('new-category-period').value;
+            const name = document.getElementById('new-category-input').value.trim();
+            if (!period) { alert('请选择时期'); return; }
+            if (!name) { alert('请输入分类名称'); return; }
+            if (!noteMeta.categories[period]) noteMeta.categories[period] = [];
+            if (noteMeta.categories[period].includes(name)) { alert('分类已存在'); return; }
+            noteMeta.categories[period].push(name);
+            saveNotes().then(() => {
+                document.getElementById('new-category-input').value = '';
+                openCategoryManager();
+                renderNoteMuseum();
+            });
+        };
+
+        // 重命名分类
+        window.renameCategory = function(period, oldName) {
+            const newName = prompt('重命名分类：', oldName);
+            if (!newName || newName === oldName) return;
+            const cats = noteMeta.categories[period] || [];
+            if (cats.includes(newName)) { alert('名称已存在'); return; }
+            const idx = cats.indexOf(oldName);
+            if (idx === -1) return;
+            cats[idx] = newName;
+            // 更新笔记中的分类
+            allNotes.forEach(n => { if (n.period === period && n.category === oldName) n.category = newName; });
+            saveNotes().then(() => {
+                openCategoryManager();
+                renderNoteMuseum();
+            });
+        };
+
+        // 删除分类
+        window.deleteCategory = function(period, name) {
+            if (!confirm(`确定删除分类“${name}”吗？相关笔记的分类将被置空。`)) return;
+            const cats = noteMeta.categories[period] || [];
+            noteMeta.categories[period] = cats.filter(c => c !== name);
+            allNotes.forEach(n => { if (n.period === period && n.category === name) n.category = ''; });
+            saveNotes().then(() => {
+                openCategoryManager();
+                renderNoteMuseum();
+            });
+        };
+
+        // ---------- 批量操作 ----------
+        function batchMoveCategory() {
+            const sel = document.getElementById('batch-category');
+            const target = sel.value;
+            if (!target) { alert('请选择目标分类'); return; }
+            const ids = Array.from(noteState.checkedIds);
+            if (!ids.length) return;
+            const period = noteState.selectedPeriod || '';
+            ids.forEach(id => {
+                const note = allNotes.find(n => n.id === id);
+                if (note) {
+                    note.category = target;
+                    if (period && note.period !== period) note.period = period;
+                }
+            });
+            refreshMetaFromNotes();
+            saveNotes().then(() => {
+                noteState.checkedIds.clear();
+                renderNoteMuseum();
+            });
+        }
+
+        function batchShare() {
+            const ids = Array.from(noteState.checkedIds);
+            if (!ids.length) { alert('请先勾选纸条'); return; }
+            const notes = ids.map(id => allNotes.find(n => n.id === id)).filter(n => n);
+            if (!notes.length) return;
+
+            const el = document.createElement('div');
+            el.className = 'share-container-wide';
+            let html = `<h2>小纸条博物馆 · 精选</h2><div class="share-wall">`;
+            notes.forEach(n => {
+                const rot = (Math.random() - 0.5) * 4;
+                html += `
+                    <div class="share-item" style="transform:rotate(${rot}deg);">
+                        <img src="${n.image}" alt="纸条">
+                        ${n.remark ? `<div class="share-remark">${n.remark}</div>` : ''}
+                    </div>
+                `;
+            });
+            html += `</div><div class="share-footer">—— 来自「小纸条博物馆」</div>`;
+            el.innerHTML = html;
+
+            const shareModal = document.getElementById('share-modal');
+            const shareContent = document.getElementById('share-content');
+            shareContent.innerHTML = '';
+            shareContent.appendChild(el);
+            shareModal.classList.add('active');
+
+            const confirmBtn = document.getElementById('confirm-share-btn');
+            const newBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+            newBtn.onclick = function() {
+                captureAndDownload(el, '小纸条精选.png');
+                closeModal('share-modal');
+                noteState.checkedIds.clear();
+                renderNoteMuseum();
+            };
+        }
+
+        // ---------- 导出/导入纸条 ----------
+        function exportNotes() {
+            const blob = new Blob([JSON.stringify(allNotes, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'notes_backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importNotes() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (Array.isArray(data) && data.every(n => n.id && n.image)) {
+                            if (confirm(`将导入 ${data.length} 张纸条，覆盖当前数据？`)) {
+                                allNotes = data;
+                                refreshMetaFromNotes();
+                                saveNotes().then(() => {
+                                    renderNoteMuseum();
+                                    alert('导入成功！');
+                                });
+                            }
+                        } else {
+                            alert('文件格式无效');
+                        }
+                    } catch (err) { alert('文件解析失败'); }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // ---------- 截图工具 ----------
+        function captureAndDownload(element, filename) {
+            html2canvas(element, { scale: 1.8, backgroundColor: '#fffaf0', useCORS: true }).then(canvas => {
+                const a = document.createElement('a');
+                a.download = filename;
+                a.href = canvas.toDataURL();
+                a.click();
+            }).catch(err => alert('截图失败: ' + err));
+        }
+
+        // ---------- 模态框工具 ----------
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // ---------- 文件上传（小纸条） ----------
+        function setupNoteUpload() {
+            const area = document.getElementById('note-upload-area');
+            const input = document.getElementById('note-file-input');
+            const preview = document.getElementById('note-preview');
+            if (!area || !input) return;
+            area.addEventListener('click', () => input.click());
+            area.addEventListener('dragover', (e) => { e.preventDefault();
+                area.classList.add('drag-over'); });
+            area.addEventListener('dragleave', () => { area.classList.remove('drag-over'); });
+            area.addEventListener('drop', (e) => {
+                e.preventDefault();
+                area.classList.remove('drag-over');
+                if (e.dataTransfer.files.length) handleNoteFile(e.dataTransfer.files[0]);
+            });
+            input.addEventListener('change', function() {
+                if (this.files.length) handleNoteFile(this.files[0]);
+                this.value = '';
+            });
+
+            function handleNoteFile(file) {
+                if (!file.type.startsWith('image/')) { alert('请上传图片'); return; }
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    preview.innerHTML =
+                        `<div class="image-preview-item"><img src="${ev.target.result}"><button type="button" class="remove-image-btn" onclick="this.parentElement.remove()">×</button></div>`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // ---------- Tab 切换 ----------
+        function initTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+                });
+            });
+        }
+
+        // ---------- 初始化 ----------
+        document.addEventListener('DOMContentLoaded', function() {
+            initTabs();
+            setupNoteUpload();
+
+            document.getElementById('add-book-btn').addEventListener('click', () => openBookForm(null));
+            document.getElementById('import-books-btn').addEventListener('click', importBooks);
+
+            document.getElementById('add-note-btn').addEventListener('click', () => openNoteForm(null));
+            document.getElementById('note-mode-wall').addEventListener('click', function() {
+                noteState.displayMode = 'wall';
+                document.getElementById('note-mode-wall').classList.add('active-mode');
+                document.getElementById('note-mode-list').classList.remove('active-mode');
+                renderNoteMuseum();
+            });
+            document.getElementById('note-mode-list').addEventListener('click', function() {
+                noteState.displayMode = 'list';
+                document.getElementById('note-mode-list').classList.add('active-mode');
+                document.getElementById('note-mode-wall').classList.remove('active-mode');
+                renderNoteMuseum();
+            });
+            document.getElementById('manage-category-btn').addEventListener('click', openCategoryManager);
+            document.getElementById('batch-move').addEventListener('click', batchMoveCategory);
+            document.getElementById('batch-share').addEventListener('click', batchShare);
+            document.getElementById('batch-clear').addEventListener('click', function() {
+                noteState.checkedIds.clear();
+                renderNoteMuseum();
+            });
+            document.getElementById('export-notes-btn').addEventListener('click', exportNotes);
+            document.getElementById('import-notes-btn').addEventListener('click', importNotes);
+
+            loadAllData();
+        });
+
+        // 暴露全局函数
+        window.openBookForm = openBookForm;
+        window.openPageForm = openPageForm;
+        window.confirmDeleteBook = confirmDeleteBook;
+        window.deleteBook = deleteBook;
+        window.confirmDeletePage = confirmDeletePage;
+        window.deletePage = deletePage;
+        window.openReader = openReader;
+        window.readerPrev = readerPrev;
+        window.readerNext = readerNext;
+        window.readerJump = readerJump;
+        window.readerEditBook = readerEditBook;
+        window.openNoteForm = openNoteForm;
+        window.deleteNote = deleteNote;
+        window.confirmDeleteNote = confirmDeleteNote;
+        window.openCategoryManager = openCategoryManager;
+        window.addPeriod = addPeriod;
+        window.renamePeriod = renamePeriod;
+        window.deletePeriod = deletePeriod;
+        window.addCategory = addCategory;
+        window.renameCategory = renameCategory;
+        window.deleteCategory = deleteCategory;
+        window.closeModal = closeModal;
+        window.removeBookCover = removeBookCover;
+        window.addPageImagePreview = addPageImagePreview;
+        window.downloadBook = downloadBook;
+        window.importBooks = importBooks;
+    </script>
+
+</body>
+</html>
