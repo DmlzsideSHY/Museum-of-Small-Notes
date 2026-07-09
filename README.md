@@ -8,8 +8,7 @@
 
 一个轻量级的个人记忆管理工具，用于收藏和管理高中生活中的碎片记忆——那些写满心事的纸条、随手涂鸦的便签，以及属于那个年代的“著作”。
 
-在线体验：https://github.com/DmlzsideSHY/Museum of Small Notes.git
-
+在线体验：https://dmlzsideshy.github.io/Museum-of-Small-Notes/index.html
 ---
 
 项目背景
@@ -148,7 +147,7 @@ Made with ❤️
 
 A lightweight personal memory management tool for collecting and preserving fragmentary memories from high school life—those notes filled with thoughts, doodled sticky notes, and the "writings" that belong to that era.
 
-Live Demo: https://github.com/DmlzsideSHY/Museum of Small Notes.git
+Live Demo: https://dmlzsideshy.github.io/Museum-of-Small-Notes/index.html
 
 ---
 
