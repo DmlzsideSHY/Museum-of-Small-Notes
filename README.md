@@ -1,4 +1,4 @@
-# 小纸条博物馆 / Note Museum
+# 小纸条博物馆 / Museum-of-Small-Notes
 
 [中文](#) | [English](#)
 
